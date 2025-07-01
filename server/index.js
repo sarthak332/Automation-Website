@@ -75,8 +75,7 @@ app.post("/api/send-email", async (req, res) => {
   }
 
   try {
-    // ✅ ReCAPTCHA verification (uncomment in production)
-    /*
+    // ✅ ReCAPTCHA verification
     const verifyURL = `https://www.google.com/recaptcha/api/siteverify`;
     const params = new URLSearchParams();
     params.append("secret", process.env.RECAPTCHA_SECRET_KEY);
@@ -86,31 +85,32 @@ app.post("/api/send-email", async (req, res) => {
     if (!response.data.success || response.data.score < 0.5) {
       return res.status(400).json({ error: "Failed reCAPTCHA verification." });
     }
-    */
 
-    console.log("Generating PDF...");
+    console.log("✅ reCAPTCHA verified.");
 
     // ✅ Generate PDF receipt
-    const pdfPath = path.join(__dirname, `uploads/${Date.now()}-contact-receipt.pdf`);
+    const pdfPath = path.join(
+      __dirname,
+      `uploads/${Date.now()}-contact-receipt.pdf`
+    );
     const doc = new PDFDocument();
     const writeStream = fs.createWriteStream(pdfPath);
 
     doc.pipe(writeStream);
-
     doc.fontSize(16).text("Contact Form Submission Receipt", { underline: true });
     doc.moveDown();
     doc.fontSize(12).text(`Name: ${name}`);
     doc.text(`Email: ${email}`);
     doc.text(`Message: ${message}`);
     doc.text(`Date: ${new Date().toLocaleString()}`);
+    doc.end();
 
     await new Promise((resolve, reject) => {
       writeStream.on("finish", resolve);
       writeStream.on("error", reject);
-      doc.end();
     });
 
-    console.log("PDF generated!");
+    console.log("✅ PDF receipt generated.");
 
     // ✅ Nodemailer transporter
     const transporter = nodemailer.createTransport({
@@ -121,7 +121,7 @@ app.post("/api/send-email", async (req, res) => {
       },
     });
 
-    console.log("Sending email to owner...");
+    console.log("✅ Sending email to owner...");
 
     // ✅ Email to owner
     await transporter.sendMail({
@@ -137,7 +137,7 @@ app.post("/api/send-email", async (req, res) => {
       ],
     });
 
-    console.log("Sending autoresponder...");
+    console.log("✅ Sending autoresponder...");
 
     // ✅ Auto-responder to user
     await transporter.sendMail({
@@ -153,7 +153,7 @@ app.post("/api/send-email", async (req, res) => {
       ],
     });
 
-    console.log("Saving to Google Sheets...");
+    console.log("✅ Saving to Google Sheets...");
 
     // ✅ Save to Google Sheets
     await appendToContactFormSheet([
@@ -163,9 +163,9 @@ app.post("/api/send-email", async (req, res) => {
       new Date().toISOString(),
     ]);
 
-    console.log("Sending Telegram message...");
+    console.log("✅ Sending Telegram message...");
 
-    // ✅ Send Telegram message (with timeout!)
+    // ✅ Send Telegram message
     const telegramApiUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
 
     await axios.post(
@@ -176,13 +176,11 @@ app.post("/api/send-email", async (req, res) => {
         parse_mode: "Markdown",
       },
       {
-        timeout: 10000, // 10 seconds timeout
+        timeout: 10000,
       }
     );
 
-    console.log("Deleting PDF...");
-
-    // ✅ Clean up PDF file
+    console.log("✅ Cleaning up PDF file...");
     fs.unlink(pdfPath, (err) => {
       if (err) console.error("Failed to delete PDF file:", err);
     });
@@ -199,36 +197,30 @@ app.post("/api/send-email", async (req, res) => {
   }
 });
 
-
 // -------------------------------
-// ✅ File Upload + Email + Telegram
+// ✅ File Upload Route
 // -------------------------------
-
-
-
-
 app.post("/api/upload-file", upload.single("file"), async (req, res) => {
   try {
     const { name, email } = req.body;
     const file = req.file;
 
     if (!file) {
-      return res.status(400).json({ error: "No file uploaded" });
+      return res.status(400).json({ error: "No file uploaded." });
     }
 
-    // ✅ Ensure uploads folder exists
+    // ✅ Generate PDF receipt
     const uploadsDir = path.join(__dirname, "uploads");
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir);
     }
 
-    // ✅ Generate PDF receipt
-    const pdfFilename = `${Date.now()}-receipt.pdf`;
+    const pdfFilename = `${Date.now()}-upload-receipt.pdf`;
     const pdfPath = path.join(uploadsDir, pdfFilename);
 
     const doc = new PDFDocument();
-    const pdfWriteStream = fs.createWriteStream(pdfPath);
-    doc.pipe(pdfWriteStream);
+    const writeStream = fs.createWriteStream(pdfPath);
+    doc.pipe(writeStream);
 
     doc.fontSize(16).text("File Upload Confirmation", { underline: true });
     doc.moveDown();
@@ -236,16 +228,12 @@ app.post("/api/upload-file", upload.single("file"), async (req, res) => {
     doc.text(`Email: ${email}`);
     doc.text(`Uploaded File: ${file.originalname}`);
     doc.text(`Date: ${new Date().toLocaleString()}`);
-
     doc.end();
 
-    // Wait for PDF to fully finish
     await new Promise((resolve, reject) => {
-      pdfWriteStream.on("finish", resolve);
-      pdfWriteStream.on("error", reject);
+      writeStream.on("finish", resolve);
+      writeStream.on("error", reject);
     });
-
-    console.log("✅ PDF generated at:", pdfPath);
 
     // ✅ Nodemailer transporter
     const transporter = nodemailer.createTransport({
@@ -256,7 +244,7 @@ app.post("/api/upload-file", upload.single("file"), async (req, res) => {
       },
     });
 
-    // ✅ Email owner (you)
+    // ✅ Email owner
     await transporter.sendMail({
       from: email,
       to: process.env.EMAIL_USER,
@@ -300,11 +288,8 @@ app.post("/api/upload-file", upload.single("file"), async (req, res) => {
       `Uploaded file: ${file.originalname}`,
     ]);
 
-    console.log("✅ Data saved to Google Sheets!");
-
     // ✅ Send Telegram file preview
     const telegramApiUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`;
-
     const formData = new FormData();
     formData.append("chat_id", process.env.TELEGRAM_CHAT_ID);
     formData.append(
@@ -315,10 +300,10 @@ app.post("/api/upload-file", upload.single("file"), async (req, res) => {
 
     await axios.post(telegramApiUrl, formData, {
       headers: formData.getHeaders(),
-      timeout: 60000, // 60 seconds in case file is large
+      timeout: 60000,
     });
 
-    console.log("✅ Telegram sent!");
+    console.log("✅ Telegram message sent!");
 
     // ✅ Clean up local files
     fs.unlink(file.path, (err) => {
@@ -329,12 +314,11 @@ app.post("/api/upload-file", upload.single("file"), async (req, res) => {
     });
 
     res.json({
-      message:
-        "File uploaded, PDF receipts sent via email, Telegram notified!",
+      message: "File uploaded, PDF receipts sent via email, Telegram notified!",
     });
   } catch (error) {
     console.error(
-      "File upload or PDF error:",
+      "File upload error:",
       error.response?.data || error.message
     );
     res.status(500).json({
@@ -342,7 +326,6 @@ app.post("/api/upload-file", upload.single("file"), async (req, res) => {
     });
   }
 });
-
 
 // -------------------------------
 // ✅ OpenAI Chatbot Route
@@ -381,13 +364,14 @@ app.post("/api/book", async (req, res) => {
   try {
     const { name, email, date, time } = req.body;
 
-    // ✅ Generate booking receipt PDF
-    const pdfPath = path.join(__dirname, `uploads/${Date.now()}-booking-receipt.pdf`);
+    const pdfPath = path.join(
+      __dirname,
+      `uploads/${Date.now()}-booking-receipt.pdf`
+    );
     const doc = new PDFDocument();
     const writeStream = fs.createWriteStream(pdfPath);
 
     doc.pipe(writeStream);
-
     doc.fontSize(18).text("Booking Confirmation Receipt", { underline: true });
     doc.moveDown();
     doc.fontSize(12).text(`Name: ${name}`);
@@ -395,22 +379,20 @@ app.post("/api/book", async (req, res) => {
     doc.text(`Booking Date: ${date}`);
     doc.text(`Time: ${time}`);
     doc.text(`Submitted At: ${new Date().toLocaleString()}`);
+    doc.end();
 
     await new Promise((resolve, reject) => {
       writeStream.on("finish", resolve);
       writeStream.on("error", reject);
-      doc.end();
     });
 
-    // ✅ Save to Google Sheets
     await appendToBookingFormSheet([
       new Date().toISOString(),
       name,
       email,
-      `Booking Date: ${date}, Time: ${time}`
+      `Booking Date: ${date}, Time: ${time}`,
     ]);
 
-    // ✅ Send Email with PDF attachment
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -419,7 +401,6 @@ app.post("/api/book", async (req, res) => {
       },
     });
 
-    // Send to owner
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: process.env.EMAIL_USER,
@@ -433,7 +414,6 @@ app.post("/api/book", async (req, res) => {
       ],
     });
 
-    // Optional: Send to user
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
@@ -447,7 +427,6 @@ app.post("/api/book", async (req, res) => {
       ],
     });
 
-    // ✅ Telegram Notification
     const telegramApiUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
 
     await axios.post(telegramApiUrl, {
@@ -456,7 +435,6 @@ app.post("/api/book", async (req, res) => {
       parse_mode: "Markdown",
     });
 
-    // ✅ Clean up PDF
     fs.unlink(pdfPath, (err) => {
       if (err) console.error("Failed to delete PDF file:", err);
     });
@@ -468,19 +446,20 @@ app.post("/api/book", async (req, res) => {
   }
 });
 
-// Create Razorpay instance
+// -------------------------------
+// ✅ Razorpay Integration
+// -------------------------------
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// ✅ Create Razorpay order
 app.post("/api/create-order", async (req, res) => {
   try {
     const { amount, currency, name, email } = req.body;
 
     const options = {
-      amount: amount * 100, // convert to paise
+      amount: amount * 100,
       currency,
       receipt: `receipt_${Date.now()}`,
       payment_capture: 1,
@@ -501,7 +480,6 @@ app.post("/api/create-order", async (req, res) => {
   }
 });
 
-// ✅ Payment success + generate PDF + email receipt
 app.post("/api/payment-success", async (req, res) => {
   try {
     const {
@@ -512,7 +490,6 @@ app.post("/api/payment-success", async (req, res) => {
       amount,
     } = req.body;
 
-    // ✅ Generate PDF receipt
     const pdfPath = path.join(
       __dirname,
       `uploads/${Date.now()}-payment-receipt.pdf`
@@ -530,16 +507,13 @@ app.post("/api/payment-success", async (req, res) => {
     doc.text(`Payment ID: ${razorpay_payment_id}`);
     doc.text(`Amount Paid: ₹${(amount / 100).toFixed(2)}`);
     doc.text(`Date: ${new Date().toLocaleString()}`);
+    doc.end();
 
     await new Promise((resolve, reject) => {
       writeStream.on("finish", resolve);
       writeStream.on("error", reject);
-      doc.end();
     });
 
-    console.log("✅ Payment PDF receipt created.");
-
-    // ✅ Email PDF receipt to user
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -561,9 +535,6 @@ app.post("/api/payment-success", async (req, res) => {
       ],
     });
 
-    console.log("✅ Receipt email sent to user!");
-
-    // ✅ Clean up PDF file
     fs.unlink(pdfPath, (err) => {
       if (err) console.error("Failed to delete PDF file:", err);
     });
@@ -578,9 +549,8 @@ app.post("/api/payment-success", async (req, res) => {
   }
 });
 
-
 // -------------------------------
-// ✅ Test Telegram route
+// ✅ Telegram Test Route
 // -------------------------------
 app.post("/api/send-telegram", async (req, res) => {
   const { message } = req.body;
@@ -609,6 +579,9 @@ app.post("/api/send-telegram", async (req, res) => {
   }
 });
 
+// -------------------------------
+// ✅ Start the server
+// -------------------------------
 app.listen(5000, () => {
-  console.log("Server started on port 5000");
+  console.log("✅ Server started on port 5000");
 });
