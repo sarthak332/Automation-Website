@@ -22,7 +22,7 @@ const BookingForm = () => {
     e.preventDefault();
 
     try {
-      const res = await axios.post("http://localhost:5000/api/book", formData);
+      const res = await axios.post("https://automation-website-1-esqs.onrender.com/api/book", formData);
       setStatus({ success: true, message: res.data.message });
       setFormData({
         name: "",

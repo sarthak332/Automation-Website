@@ -27,7 +27,7 @@ const ContactForm = () => {
         { action: "submit" }
       );
 
-      const res = await fetch("http://localhost:5000/api/send-email", {
+      const res = await fetch("https://automation-website-1-esqs.onrender.com/api/send-email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -12,7 +12,7 @@ export default function Chatbot() {
     setMessages((prev) => [...prev, userMessage]);
 
     try {
-      const response = await fetch("http://localhost:5000/api/chat", {
+      const response = await fetch("https://automation-website-1-esqs.onrender.com/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

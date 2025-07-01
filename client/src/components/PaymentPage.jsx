@@ -18,7 +18,7 @@ const PaymentPage = () => {
 
       // Create order on backend
       const res = await axios.post(
-        "http://localhost:5000/api/create-order",
+       "https://automation-website-1-esqs.onrender.com/api/create-order",
         {
           name,
           email,
@@ -39,7 +39,7 @@ const PaymentPage = () => {
         handler: async (response) => {
           // send payment info to backend
           await axios.post(
-            "http://localhost:5000/api/payment-success",
+            "https://automation-website-1-esqs.onrender.com/api/payment-success",
             {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id: response.razorpay_order_id,

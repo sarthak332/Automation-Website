@@ -12,7 +12,7 @@ export default function TelegramForm() {
     setSuccess(null);
 
     try {
-      const res = await fetch("http://localhost:5000/api/send-telegram", {
+      const res = await fetch("https://automation-website-1-esqs.onrender.com/api/send-telegram", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
