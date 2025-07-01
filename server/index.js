@@ -13,7 +13,7 @@ require("dotenv").config();
 
 const { google } = require("googleapis");
 const credentials = require("./google-credentials.json");
-const { appendToBookingFormSheet } = require("./googlesheets");
+const { appendToBookingFormSheet } = require("./googleSheets");
 
 const app = express();
 app.use(cors());
